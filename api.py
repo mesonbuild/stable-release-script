@@ -30,7 +30,7 @@ m = repo.get_milestone(int(sys.argv[1]))
 
 print("Generating patch list for milestone {} ...".format(m.title), end="", flush=True)
 issues = list(repo.get_issues(milestone=m, state="closed", sort="updated", direction="asc"))
-print("found {} issues and pull-requests (will ignore issues)".format(len(issues)))
+print("found {} closed issues and merged pull-requests (will ignore issues)".format(len(issues)))
 os.makedirs('patches', exist_ok=True)
 
 # Get all closed issues (PRs) starting from oldest to newest
