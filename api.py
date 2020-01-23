@@ -28,28 +28,31 @@ repo = g.get_repo(config['repo'])
 # Milestone number for stable release
 m = repo.get_milestone(int(sys.argv[1]))
 
-print("Generating patch list for milestone {} ...".format(m.title), end="", flush=True)
-issues = list(repo.get_issues(milestone=m, state="closed", sort="updated", direction="asc"))
-print("found {} closed issues and merged pull-requests (will ignore issues)".format(len(issues)))
+print("Fetching issue list for milestone {} ...".format(m.title), end="", flush=True)
+
+issues = {}
+pulls = {}
+for issue in repo.get_issues(milestone=m, state="closed"):
+    if issue.pull_request:
+        pulls[issue.closed_at] = issue
+    else:
+        issues[issue.closed_at] = issue
+
+print("found {} closed issues and {} merged pull-requests".format(len(issues), len(pulls)))
 os.makedirs('patches', exist_ok=True)
 
 # Get all closed issues (PRs) starting from oldest to newest
-counter = 0
-for issue in issues:
-    if not issue.pull_request:
-        print("Ignoring #{} ({})".format(issue.number, issue.html_url))
-        continue
-    counter += 1
+for d, issuepr in pulls.items():
     # Name the patch
-    url = issue.pull_request.patch_url
-    fname = Path('{:04d}-{}'.format(counter, os.path.basename(url)))
+    url = issuepr.pull_request.patch_url
+    fname = Path('{}--PR{}'.format(d.strftime('%Y-%m-%dT%H%M%S'), os.path.basename(url)))
     fdir = Path('patches')
     foname = fdir / fname
     if foname.exists() or (fdir / 'done' / fname).exists():
         print("{} already exists, skipping".format(fname))
         continue
     # Fetch the patch if required
-    print("Fetching patch for PR #{} ...".format(issue.number), end="", flush=True)
+    print("Fetching patch for PR #{} ...".format(issuepr.number), end="", flush=True)
     r = requests.get(url)
     if r.status_code != 200:
         # Print url for manual checking
