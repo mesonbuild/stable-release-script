@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#
+# Author: Nirbheek Chauhan <nirbheek.chauhan@gmail.com>
+# License: Apache-2.0
+#
+# A tool to fetch all the patches in the PRs for a milestone. Used for making
+# stable releases for Meson with `git am <patch>`.
+#
+# TODO: We currently fetch patches from the PR instead of the patches that went
+# into the master branch of the repository. This means that f.ex., squashed PRs
+# are not handled correctly. Maybe we should fetch SHAs from the repository
+# instead and use `git cherry-pick` instead. It's easier to resolve conflicts
+# this way.
 
 import os
 import sys
@@ -10,8 +22,8 @@ from configparser import ConfigParser
 from github import Github
 
 # Parse arguments
-parser = argparse.ArgumentParser(prog="stable-release-tool")
-parser.add_argument('milestone', type=int, nargs='?',
+parser = argparse.ArgumentParser(prog="milestone-patches")
+parser.add_argument('milestone', type=int,
                     help='Github milestone number')
 parser.add_argument('--verify', '-v', default=False, action='store_true',
                     help='Verify that all issues have their fixes milestoned')
