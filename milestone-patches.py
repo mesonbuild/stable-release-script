@@ -61,7 +61,8 @@ def issue_get_closing_sha(issue):
         if not e.commit_id:
             e = next(events)
         if not e.commit_id or not e.commit_url:
-            raise AssertionError('Issue {} was closed but no commit was associated!?'.format(issue.number))
+            print('Issue {} was closed but no commit was associated!?'.format(issue.number))
+            return None
         if not e.commit_url.startswith('https://api.github.com/repos/mesonbuild/meson/commits/'):
             raise AssertionError('Closing event for issue {} has a url to a different repo: {!r}'.format(issue.number, e.commit_url))
         return e.commit_id
@@ -129,6 +130,8 @@ def verify_issue_fixes_are_milestoned(repo, issues, pulls):
 
     for _, issue in issues.items():
         sha = issue_get_closing_sha(issue)
+        if not sha:
+            continue
         if sha not in shas:
             print('WARNING: Could not find a PR that closed issue {!r} ({}'.format(issue, sha))
     print(" done.");
