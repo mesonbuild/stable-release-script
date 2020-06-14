@@ -153,6 +153,10 @@ issues = {}
 pulls = {}
 for issue in repo.get_issues(milestone=m, state="closed"):
     if issue.pull_request:
+        as_pr = issue.as_pull_request()
+        if not as_pr.merged:
+            print('\nPull request {} was closed, not merged. Remove it from the milestone.'.format(as_pr.html_url))
+            exit(1)
         pulls[issue.closed_at] = issue
     else:
         issues[issue.closed_at] = issue
