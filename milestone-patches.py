@@ -59,7 +59,11 @@ def issue_get_closing_sha(issue):
         # If the event closing the issue was not a commit, it was closed via PR
         # and the immediate next event is most likely the commit that closed it
         if not e.commit_id:
-            e = next(events)
+            try:
+                e = next(events)
+            except StopIteration:
+                print('Issue {} was closed, but could not find associated PR'.format(issue.number))
+                return None
         if not e.commit_id or not e.commit_url:
             print('Issue {} was closed but no commit was associated!?'.format(issue.number))
             return None
