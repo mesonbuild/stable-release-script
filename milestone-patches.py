@@ -25,8 +25,8 @@ from github import Github
 parser = argparse.ArgumentParser(prog="milestone-patches")
 parser.add_argument('milestone', type=int,
                     help='Github milestone number')
-parser.add_argument('--verify', '-v', default=False, action='store_true',
-                    help='Verify that all issues have their fixes milestoned')
+parser.add_argument('--no-verify', '-n', default=False, action='store_true',
+                    help='Don\'t verify that all issues have their fixes milestoned')
 parser.add_argument('--debug', '-d', default=False, action='store_true',
                     help='Print verbose debug output')
 options = parser.parse_args()
@@ -168,7 +168,7 @@ for issue in repo.get_issues(milestone=m, state="closed"):
 print("found {} closed issues and {} merged pull-requests".format(len(issues), len(pulls)))
 os.makedirs('patches', exist_ok=True)
 
-if options.verify:
+if not options.no_verify:
     verify_issue_fixes_are_milestoned(repo, issues, pulls)
 
 # Fetch and write patches from all PRs
