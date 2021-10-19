@@ -168,7 +168,7 @@ for issue in repo.get_issues(milestone=m, state="closed"):
 print("found {} closed issues and {} merged pull-requests".format(len(issues), len(pulls)))
 os.makedirs('patches', exist_ok=True)
 
-if not options.no_verify:
+if len(issues) > 0 and not options.no_verify:
     verify_issue_fixes_are_milestoned(repo, issues, pulls)
 
 # Fetch and write patches from all PRs
