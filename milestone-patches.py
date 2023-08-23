@@ -11,11 +11,13 @@
 # are not handled correctly. Maybe we should fetch SHAs from the repository
 # instead and use `git cherry-pick` instead. It's easier to resolve conflicts
 # this way.
+from __future__ import annotations
 
 import os
 import sys
 import argparse
 import requests
+import typing as T
 from pathlib import Path
 from configparser import ConfigParser
 
@@ -171,6 +173,27 @@ os.makedirs('patches', exist_ok=True)
 if len(issues) > 0 and not options.no_verify:
     verify_issue_fixes_are_milestoned(repo, issues, pulls)
 
+def pr_to_patch(shas: T.List[str]) -> T.Optional[str]:
+    resp = []
+    for sha in reversed(shas):
+        url = repo.get_commit(sha).html_url + '.patch'
+        r = requests.get(url)
+        if r.status_code != 200:
+            # Print url for manual checking
+            print(" failed: {} ({})".format(r.status_code, url))
+            return
+        cherrypick = f'--trailer=(cherry picked from commit {sha})=deleteme'
+        gitfilter = Popen(['git', 'interpret-trailers', cherrypick], stdin=PIPE, stdout=PIPE)
+        patch = gitfilter.communicate(r.stdout)[0]
+        patch = patch.decode('utf-8').replace('=deleteme:', '')
+        resp.append(patch)
+        resp.append('')
+
+    print(' ok')
+    return '\n'.join(resp) + '\n'
+
+
+
 # Fetch and write patches from all PRs
 for d, issuepr in pulls.items():
     # Name the patch
@@ -183,12 +206,10 @@ for d, issuepr in pulls.items():
         continue
     # Fetch the patch if required
     print("Fetching patch for PR #{} ...".format(issuepr.number), end="", flush=True)
-    r = requests.get(url)
-    if r.status_code != 200:
-        # Print url for manual checking
-        print(" failed: {} ({})".format(r.status_code, url))
+    shas = pr_get_repo_shas(issuepr, repo)
+    patch = pr_to_patch(shas)
+    if not patch:
         continue
-    print(" ok")
     print("Writing to {}".format(foname))
     with open(foname, 'w') as f:
-        f.write(r.text)
+        f.write(patch)
