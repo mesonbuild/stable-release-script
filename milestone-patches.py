@@ -53,26 +53,31 @@ def issue_get_closing_sha(issue):
     Then, if it's the one made immediately after the issue was closed and also
     points to our repository, it's probably the right one.
     '''
-    events = iter(issue.get_events())
-    for e in events:
-        # Find the event in which the issue was closed
-        if e.event != 'closed':
-            continue
-        # If the event closing the issue was not a commit, it was closed via PR
-        # and the immediate next event is most likely the commit that closed it
-        if not e.commit_id:
-            try:
-                e = next(events)
-            except StopIteration:
-                print('Issue {} was closed, but could not find associated PR'.format(issue.number))
-                return None
-        if not e.commit_id or not e.commit_url:
-            print('Issue {} was closed but no commit was associated!?'.format(issue.number))
-            return None
-        if not e.commit_url.startswith('https://api.github.com/repos/mesonbuild/meson/commits/'):
-            raise AssertionError('Closing event for issue {} has a url to a different repo: {!r}'.format(issue.number, e.commit_url))
-        return e.commit_id
-    raise AssertionError('Issue {} is not closed, double-check'.format(issue.number))
+    q = '''
+    query($issue: Int!)
+    {
+      repository(owner: "mesonbuild", name: "meson") {
+        issue(number: $issue) {
+          closedByPullRequestsReferences(includeClosedPrs:true, first:10) {
+            nodes {
+              permalink
+              mergeCommit { oid }
+            }
+          }
+        }
+      }
+    }'''
+    resp = issue.requester.graphql_query(q, {'issue': issue.number})
+    for i in resp[1]['data']['repository']['issue']['closedByPullRequestsReferences']['nodes']:
+        if not i['permalink'].startswith('https://github.com/mesonbuild/meson/pull/'):
+            raise AssertionError('Closing PR for issue {} has a url to a different repo: {!r}'.format(issue.number, i['permalink']))
+        return i['mergeCommit']['oid']
+
+    if issue.state != 'closed':
+        raise AssertionError('Issue {} is not closed, double-check'.format(issue.number))
+
+    print('Issue {} was closed, but could not find associated PR'.format(issue.number))
+    return None
 
 def pr_get_merging_sha(issuepr):
     '''
