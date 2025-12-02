@@ -18,6 +18,7 @@ import sys
 import argparse
 import requests
 import typing as T
+import subprocess
 from pathlib import Path
 from configparser import ConfigParser
 
@@ -188,9 +189,9 @@ def pr_to_patch(shas: T.List[str]) -> T.Optional[str]:
             print(" failed: {} ({})".format(r.status_code, url))
             return
         cherrypick = f'--trailer=(cherry picked from commit {sha})=deleteme'
-        gitfilter = Popen(['git', 'interpret-trailers', cherrypick], stdin=PIPE, stdout=PIPE)
-        patch = gitfilter.communicate(r.stdout)[0]
-        patch = patch.decode('utf-8').replace('=deleteme:', '')
+        gitfilter = subprocess.Popen(['git', 'interpret-trailers', cherrypick], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        patch = gitfilter.communicate(r.text)[0]
+        patch = patch.replace('=deleteme:', '')
         resp.append(patch)
         resp.append('')
 
