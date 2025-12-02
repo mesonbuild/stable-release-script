@@ -11,8 +11,11 @@ Copy the config over
 $ cp config-example.cfg config.cfg
 ```
 
-Generate a personal access token by going to https://github.com/settings/tokens/new,
-then add it to the config file
+Generate a personal access token with read access to public repositories and an
+expiry date of <366 days by going to https://github.com/settings/personal-access-tokens.
+You do not need to give it any special permissions.
+
+Then add it to the config file:
 
 ```ini
 api-token = replace_this_with_your_token
