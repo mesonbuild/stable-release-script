@@ -72,6 +72,8 @@ def issue_get_closing_sha(issue):
     for i in resp[1]['data']['repository']['issue']['closedByPullRequestsReferences']['nodes']:
         if not i['permalink'].startswith('https://github.com/mesonbuild/meson/pull/'):
             raise AssertionError('Closing PR for issue {} has a url to a different repo: {!r}'.format(issue.number, i['permalink']))
+        if not i['mergeCommit']:
+            continue
         return i['mergeCommit']['oid']
 
     if issue.state != 'closed':
