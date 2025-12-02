@@ -24,12 +24,21 @@ from configparser import ConfigParser
 
 from github import Github
 
+class CommaSeparatedList(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        current = getattr(namespace, self.dest) or []
+        # Convert comma-separated string to list
+        additional = [int(v) for v in value.split(',')]
+        setattr(namespace, self.dest, current + additional)
+
 # Parse arguments
 parser = argparse.ArgumentParser(prog="milestone-patches")
 parser.add_argument('milestone', type=int,
                     help='Github milestone number')
 parser.add_argument('--no-verify', '-n', default=False, action='store_true',
                     help='Don\'t verify that all issues have their fixes milestoned')
+parser.add_argument('--ignore-issues', action=CommaSeparatedList, default=[],
+                    help='Don\'t verify this comma-separated list of issues')
 parser.add_argument('--debug', '-d', default=False, action='store_true',
                     help='Print verbose debug output')
 options = parser.parse_args()
@@ -136,7 +145,7 @@ def pr_get_repo_shas(issuepr, repo):
 def verify_issue_fixes_are_milestoned(repo, issues, pulls):
     print("Fetching issues on the milestone ...", end="", flush=True)
     shas = {}
-    for _, issuepr in pulls.items():
+    for issuepr in pulls:
         print('.', end='', flush=True)
         for sha in pr_get_repo_shas(issuepr, repo):
             if sha in shas:
@@ -145,7 +154,7 @@ def verify_issue_fixes_are_milestoned(repo, issues, pulls):
     print(" done.", flush=True);
 
     print("Verifying that all issues have an associated pull request ...", end="", flush=True)
-    for _, issue in issues.items():
+    for issue in issues:
         print('.', end='', flush=True)
         sha = None
         try:
@@ -188,8 +197,9 @@ for issue in repo.get_issues(milestone=m, state="closed"):
 print("found {} closed issues and {} merged pull-requests".format(len(issues), len(pulls)))
 os.makedirs('patches', exist_ok=True)
 
-if len(issues) > 0 and not options.no_verify:
-    verify_issue_fixes_are_milestoned(repo, issues, pulls)
+if issues and not options.no_verify:
+    check_issues = filter(lambda x: x.number not in options.ignore_issues, issues.values())
+    verify_issue_fixes_are_milestoned(repo, check_issues, pulls.values())
 
 def pr_to_patch(shas: T.List[str]) -> T.Optional[str]:
     resp = []
