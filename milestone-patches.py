@@ -134,21 +134,25 @@ def pr_get_repo_shas(issuepr, repo):
     return repo_shas
 
 def verify_issue_fixes_are_milestoned(repo, issues, pulls):
-    print("Verifying that all issues have an associated pull request...", end="", flush=True)
+    print("Fetching issues on the milestone ...", end="", flush=True)
     shas = {}
     for _, issuepr in pulls.items():
+        print('.', end='', flush=True)
         for sha in pr_get_repo_shas(issuepr, repo):
             if sha in shas:
                 raise AssertionError('Tried to add commit {} from PR {!r}, but already have the same commit from PR {!r}'.format(sha, issuepr, shas[sha]))
             shas[sha] = issuepr
+    print(" done.", flush=True);
 
+    print("Verifying that all issues have an associated pull request ...", end="", flush=True)
     for _, issue in issues.items():
+        print('.', end='', flush=True)
         sha = issue_get_closing_sha(issue)
         if not sha:
             continue
         if sha not in shas:
             print('WARNING: Could not find a PR that closed issue {!r} ({}'.format(issue, sha))
-    print(" done.");
+    print(" done.", flush=True);
 
     for sha, issuepr in shas.items():
         print_debug(sha, issuepr)
@@ -166,6 +170,7 @@ print("Fetching issue list for milestone {} ...".format(m.title), end="", flush=
 issues = {}
 pulls = {}
 for issue in repo.get_issues(milestone=m, state="closed"):
+    print('.', end='')
     if issue.pull_request:
         as_pr = issue.as_pull_request()
         if not as_pr.merged:
