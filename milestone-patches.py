@@ -147,7 +147,12 @@ def verify_issue_fixes_are_milestoned(repo, issues, pulls):
     print("Verifying that all issues have an associated pull request ...", end="", flush=True)
     for _, issue in issues.items():
         print('.', end='', flush=True)
-        sha = issue_get_closing_sha(issue)
+        sha = None
+        try:
+            sha = issue_get_closing_sha(issue)
+        except:
+            print(f'WARNING: Could not fetch closing sha for issue {issue}')
+            pass
         if not sha:
             continue
         if sha not in shas:
